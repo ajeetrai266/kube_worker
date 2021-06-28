@@ -24,15 +24,15 @@ services:
 Dependencies
 ------------
 
-This Role is dependent on kube_master which is hosted on Ansibe Galaxy.
+This Role is dependent on [kube_master](https://github.com/ajeetrai266/kube_master) which is hosted on Ansibe Galaxy.
 
 Example Playbook
 ----------------
 
-Playbook for kubernetes_master
-    - hosts: tag_Name_of_managed_node
-      roles:
-         - kubernetes_master
+Playbook for kubernetes_master\
+    - hosts: tag_Name_of_managed_node\
+      &nbsp; roles:\
+       &nbsp; &nbsp;  - kubernetes_master
 
 License
 -------
