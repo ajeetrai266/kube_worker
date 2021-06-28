@@ -1,0 +1,79 @@
+---
+# tasks file for kubernetes_master
+- name: "Create a Repository for Kubernetes" 
+  yum_repository: 
+    name: "kubernetes" 
+    baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-\$basearch 
+    gpgcheck: 1 
+    enabled: 1 
+    gpgkey: 
+      - https://packages.cloud.google.com/yum/doc/yum-key.gpg 
+      - https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg 
+    exclude: 
+      - "kubelet"
+      - "kubeadm"
+      - "kubectl"
+    description: "kubernetes"
+
+- name: Install required packages
+  yum:
+    name: "{{ item }}"
+    state: present
+    disable_excludes: kubernetes
+  loop: "{{ packages }}"
+  
+- name: Start and enable Service's (docker, kubelet)
+  service:
+    name: "{{ item }}"
+    state: started
+    enabled: yes
+  loop: "{{ services }}"
+  register: service_start
+
+- name: "Configure All Images that is required to set-Up Cluster" 
+  shell: 
+    cmd: "kubeadm config images pull" 
+  when: service_start.changed == true
+
+- name: "Change the Driver of Docker" 
+  copy: 
+    src: "files/daemon.json" 
+    dest: "/etc/docker/daemon.json" 
+  notify: Restart Docker
+
+- name: "Restart the Docker Service" 
+  meta: flush_handlers
+
+- name: "Set Ip6tables" 
+  copy: 
+    src: "files/k8s.conf" 
+    dest: "/etc/sysctl.d/k8s.conf"
+  register: ip6tables
+
+- name: "Run Systctl system to Load settingd from all system configuration files" 
+  command: "sysctl --system" 
+  when: ip6tables.changed == true
+
+- name: "Start the Kubernetes Master"
+  command: " kubeadm init --pod-network-cidr=10.240.0.0/16 --ignore-preflight-errors=NumCPU --ignore-preflight-errors=Mem" 
+  when: ip6tables.changed == true
+
+## If you want to direct access on worker node
+
+#- name: "Create Diretory for Kube Config" 
+# file: 
+#   path: "$HOME/.kube" 
+#   state: directory
+# register: user 
+
+#- name: "Copy K8s admin config file in Kube directory" 
+#  copy: 
+#    remote_src: yes 
+#    src: "/etc/kubernetes/admin.conf" 
+#    dest: "$HOME/.kube/config" 
+#    owner: "{{ user.owner }}" 
+#    group: "{{ user.group }}"
+
+- name: "Join the worker with Master" 
+  command: "{{ hostvars.Dummy_Host.new_token }}" 
+  when: ip6tables.changed == true

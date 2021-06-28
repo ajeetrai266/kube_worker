@@ -1,0 +1,12 @@
+---
+# vars file for kubernetes_master
+packages: 
+  - docker 
+  - kubelet
+  - kubectl
+  - kubeadm
+  - iproute-tc
+
+services:
+  - docker
+  - kubelet
